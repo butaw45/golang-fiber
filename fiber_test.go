@@ -188,3 +188,75 @@ func TestRequestBody(t *testing.T) {
 	assert.Equal(t, "Hello Hasb", string(bytes))
 
 }
+
+type ReisterRequest struct {
+	Username string `json:"username" xml:"username" form:"username"`
+	Password string `json:"password" xml:"password" form:"password"`
+	Name     string `json:"name" xml:"name" form:"name"`
+}
+
+func TestBodyParser(t *testing.T) {
+	app.Post("/register", func(ctx *fiber.Ctx) error {
+		request := new(ReisterRequest)
+		err := ctx.BodyParser(request)
+		if err != nil {
+			return nil
+		}
+
+		return ctx.SendString("Register Success " + request.Username)
+	})
+
+}
+
+func TestBodyParserJSON(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(`{"username":"Hasb","password":"rahasia", "name":"Mustafa"}`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Hasb", string(bytes))
+
+}
+
+func TestBodyParserForm(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(`username=Hasb&password=rahasia&name=Mustafa`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Hasb", string(bytes))
+
+}
+
+func TestBodyParserXML(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(
+		`<ReisterRequest>
+			<username>Hasb</username>
+			<password>rahasia</password>
+			<name>Mustafa</name>
+		</ReisterRequest>`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/xml")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Hasb", string(bytes))
+
+}
